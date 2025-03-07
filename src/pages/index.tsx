@@ -19,7 +19,7 @@ const DynamicHomeNewsLetter = dynamic(() => import('../components/home/Contact-f
 const DynamicHomeNews = dynamic(() => import('../components/home/home_news'));
 const DynamicWhatsappIcon = dynamic(() => import('../components/home/whatsappFloatingIcon'));
 const DynamicPartnersCarousel = dynamic(() => import('../components/partners/partners-carousel'), {
-    ssr: false
+    ssr: true
 });
 const DynamicLinkedinPosts = dynamic(() => import('../components/home/linkedin-posts'));
 
@@ -29,8 +29,8 @@ const Home: NextPageWithLayout = () => {
                 <DynamicHomeHero />
                 <DynamicHomePopularCourse />
                 <DynamicHomeFeature />
-                <DynamicHomeTestimonial />
-                <DynamicHomeOurMentors />
+                {/* <DynamicHomeTestimonial /> */}
+                {/* <DynamicHomeOurMentors /> */}
                 <DynamicHomeNews />
                 <DynamicLinkedinPosts />
                 <DynamicPartnersCarousel />
