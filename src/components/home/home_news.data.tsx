@@ -14,24 +14,26 @@ export async function loadNewsData(locale: string): Promise<News[]> {
         if (shouldReload) {
             console.log(`Reloading news data for locale: ${locale}`);
             const response = await fetch('https://raw.githubusercontent.com/RamezHany/IGCCe-tr/refs/heads/main/news.json');
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch news data');
+            }
+            
             const data = await response.json();
             
             // Process the data based on locale
-            dataNews = data.news.map((item: any) => {
-                if (locale === 'ar') {
-                    return {
-                        ...item,
-                        title: item.title_ar || item.title,
-                        shortDescription: item.shortDescription_ar || item.shortDescription,
-                        description: item.description_ar || item.description
-                    };
-                } else {
-                    return {
-                        ...item,
-                        // Keep English as default
-                    };
-                }
-            });
+            dataNews = data.news.map((item: any) => ({
+                id: item.id,
+                slug: item.slug,
+                title: locale === 'ar' ? (item.title_ar || item.title) : item.title,
+                title_ar: item.title_ar,
+                description: locale === 'ar' ? (item.description_ar || item.description) : item.description,
+                description_ar: item.description_ar,
+                shortDescription: locale === 'ar' ? (item.shortDescription_ar || item.shortDescription) : item.shortDescription,
+                shortDescription_ar: item.shortDescription_ar,
+                image: Array.isArray(item.image) ? item.image : [{ url: item.image, width: 800, height: 600 }],
+                date: item.date
+            }));
             
             lastLoadedLocale = locale;
             console.log(`News data loaded successfully for locale: ${locale}, items: ${dataNews.length}`);

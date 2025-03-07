@@ -1,62 +1,41 @@
-import { FC, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import Box from '@mui/material/Box';
+import { FC, useEffect, useState } from 'react';
+import { styled } from '@mui/material/styles';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Grid';
-import { styled } from '@mui/material/styles';
-import Image from 'next/image';
-import { loadNewsData } from '@/components/home/home_news.data';
-import { format } from 'date-fns';
-import { MainLayout } from '@/components/layout';
+import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
+import Image from 'next/image';
 import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { News } from '@/interfaces/News';
 import { GetServerSideProps } from 'next';
+import { loadNewsData } from '@/components/home/home_news.data';
 
 // Styled Paper for the News Detail Container
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(4),
-    borderRadius: theme.spacing(2),
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-    backgroundColor: theme.palette.background.paper,
-    transition: 'box-shadow 0.3s ease-in-out',
-    '&:hover': {
-        boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+    marginBottom: theme.spacing(4),
+    [theme.breakpoints.up('md')]: {
+        padding: theme.spacing(6),
     },
 }));
 
 interface NewsDetailProps {
-    newsData: {
-        id: string;
-        slug: string;
-        title: string;
-        title_ar: string;
-        content: string;
-        content_ar: string;
-        image: string;
-    };
+    newsItem: News | null;
 }
 
-const NewsDetail: FC<NewsDetailProps> = ({ newsData }) => {
+const NewsDetail: FC<NewsDetailProps> = ({ newsItem }) => {
     const router = useRouter();
     const { t } = useTranslation('common');
     const { locale } = router;
-    const [currentLocale, setCurrentLocale] = useState<string | undefined>(locale);
-
-    useEffect(() => {
-        if (locale !== currentLocale) {
-            setCurrentLocale(locale);
-        }
-    }, [locale, currentLocale]);
 
     if (router.isFallback) {
         return <div>Loading...</div>;
     }
 
-    if (!newsData) {
+    if (!newsItem) {
         return (
             <Container>
                 <Typography variant="h4" component="h1">
@@ -66,54 +45,48 @@ const NewsDetail: FC<NewsDetailProps> = ({ newsData }) => {
         );
     }
 
-    const title = locale === 'ar' ? newsData.title_ar : newsData.title;
-    const content = locale === 'ar' ? newsData.content_ar : newsData.content;
-
     return (
         <Container maxWidth="lg">
             <StyledPaper elevation={3}>
                 <Box mb={4}>
                     <Typography variant="h4" component="h1" gutterBottom>
-                        {title}
+                        {newsItem.title}
+                    </Typography>
+                    <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+                        {new Date(newsItem.date).toLocaleDateString()}
                     </Typography>
                     <Divider />
                 </Box>
 
-                {newsData.image && (
-                    <Box mb={4}>
-                        <Box
-                            component="img"
-                            sx={{
-                                width: '100%',
-                                height: 'auto',
-                                maxHeight: '500px',
-                                objectFit: 'cover',
-                                borderRadius: 1,
-                                mb: 2,
-                            }}
-                            src={newsData.image}
-                            alt={title}
+                {newsItem.image && newsItem.image.length > 0 && (
+                    <Box mb={4} sx={{ position: 'relative', width: '100%', height: '500px' }}>
+                        <Image
+                            src={newsItem.image[0].url}
+                            alt={newsItem.title}
+                            fill
+                            style={{ objectFit: 'cover' }}
+                            priority
                         />
                     </Box>
                 )}
 
                 <Typography variant="body1" component="div" sx={{ whiteSpace: 'pre-wrap' }}>
-                    {content}
+                    {Array.isArray(newsItem.description) 
+                        ? newsItem.description.join('\n\n')
+                        : newsItem.description}
                 </Typography>
             </StyledPaper>
         </Container>
     );
 };
 
-export const getServerSideProps: GetServerSideProps = async ({ params, locale }) => {
+export const getServerSideProps: GetServerSideProps = async ({ params, locale = 'ar' }) => {
     try {
-        const response = await fetch('https://raw.githubusercontent.com/RamezHany/IGCCe-tr/refs/heads/main/news.json');
-        if (!response.ok) {
-            throw new Error('Failed to fetch news');
-        }
+        // Load news data using the shared function
+        const newsData = await loadNewsData(locale);
         
-        const data = await response.json();
-        const newsItem = data.news.find((item: any) => item.slug === params?.slug);
+        // Find the specific news item
+        const newsItem = newsData.find((item: News) => item.slug === params?.slug);
 
         if (!newsItem) {
             return {
@@ -123,8 +96,8 @@ export const getServerSideProps: GetServerSideProps = async ({ params, locale })
 
         return {
             props: {
-                newsData: newsItem,
-                ...(await serverSideTranslations(locale || 'ar', ['common'])),
+                newsItem,
+                ...(await serverSideTranslations(locale, ['common'])),
             },
         };
     } catch (error) {
