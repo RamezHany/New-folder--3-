@@ -12,9 +12,11 @@ import { MainLayout } from '@/components/layout';
 import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
 import { useTranslation } from 'next-i18next';
-import { GetStaticProps, GetStaticPaths } from 'next';
+// import { GetStaticProps, GetStaticPaths } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { News } from '@/interfaces/News';
+import { GetServerSideProps } from 'next';
+
 
 // Styled Paper for the News Detail Container
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -161,41 +163,75 @@ const NewsDetail: FC = () => {
     );
 };
 
-export const getStaticPaths: GetStaticPaths = async () => {
-    // Fetch data from a single file, just like in home_news.data.tsx
-    const response = await fetch('https://raw.githubusercontent.com/RamezHany/IGCCe-tr/refs/heads/main/news.json');
-    const data = await response.json();
+// export const getStaticPaths: GetStaticPaths = async () => {
+//     // Fetch data from a single file, just like in home_news.data.tsx
+//     const response = await fetch('https://raw.githubusercontent.com/RamezHany/IGCCe-tr/refs/heads/main/news.json');
+//     const data = await response.json();
 
-    // Create paths for both Arabic and English locales with proper typing
-    const paths: { params: { slug: string }; locale: string }[] = [];
+//     // Create paths for both Arabic and English locales with proper typing
+//     const paths: { params: { slug: string }; locale: string }[] = [];
     
-    // Add paths for Arabic locale
-    data.news.forEach((news: any) => {
-        paths.push({
-            params: { slug: news.slug },
-            locale: 'ar',
-        });
+//     // Add paths for Arabic locale
+//     data.news.forEach((news: any) => {
+//         paths.push({
+//             params: { slug: news.slug },
+//             locale: 'ar',
+//         });
         
-        // Also add English locale path
-        paths.push({
-            params: { slug: news.slug },
-            locale: 'en',
-        });
-    });
+//         // Also add English locale path
+//         paths.push({
+//             params: { slug: news.slug },
+//             locale: 'en',
+//         });
+//     });
 
-    return {
-        paths,
-        fallback: 'blocking', // Handle new slugs and locales
-    };
+//     return {
+//         paths,
+//         fallback: 'blocking', // Handle new slugs and locales
+//     };
+// };
+
+// export const getStaticProps: GetStaticProps = async ({ locale }) => {
+//     return {
+//         props: {
+//             ...(await serverSideTranslations(locale || 'ar', ['common'])),
+//         },
+        
+//     };
+// };
+
+
+
+
+
+export const getServerSideProps: GetServerSideProps = async ({ locale, params }) => {
+    try {
+        // تحميل بيانات الأخبار من ملف JSON في GitHub
+        const response = await fetch('https://raw.githubusercontent.com/RamezHany/IGCCe-tr/main/news.json');
+        const data = await response.json();
+
+        // البحث عن الخبر حسب الـ slug الموجود في الـ params
+        const newsItem = data.news.find((news: any) => news.slug === params?.slug);
+
+        if (!newsItem) {
+            return {
+                notFound: true, // في حالة عدم العثور على الخبر، يعرض Next.js صفحة 404
+            };
+        }
+
+        return {
+            props: {
+                news: newsItem, // إرسال بيانات الخبر إلى الصفحة
+                ...(await serverSideTranslations(locale || 'ar', ['common'])), // تحميل الترجمة حسب اللغة المختارة
+            },
+        };
+    } catch (error) {
+        console.error('Error fetching news:', error);
+        return {
+            notFound: true, // لو حصل خطأ، يعرض صفحة 404
+        };
+    }
 };
 
-export const getStaticProps: GetStaticProps = async ({ locale }) => {
-    return {
-        props: {
-            ...(await serverSideTranslations(locale || 'ar', ['common'])),
-        },
-        
-    };
-};
 
 export default NewsDetail;
