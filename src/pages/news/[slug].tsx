@@ -12,11 +12,8 @@ import { MainLayout } from '@/components/layout';
 import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
 import { useTranslation } from 'next-i18next';
-// import { GetStaticProps, GetStaticPaths } from 'next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { News } from '@/interfaces/News';
 import { GetServerSideProps } from 'next';
-
 
 // Styled Paper for the News Detail Container
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -30,12 +27,15 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
     },
 }));
 
-const NewsDetail: FC = () => {
+interface NewsDetailProps {
+    newsItem: News;
+}
+
+const NewsDetail: FC<NewsDetailProps> = ({ newsItem }) => {
     const router = useRouter();
     const { slug } = router.query;
     const { t } = useTranslation('common');
     const { locale } = router;
-    const [newsItem, setNewsItem] = useState<News | null>(null);
     const [currentLocale, setCurrentLocale] = useState<string | undefined>(locale);
 
     useEffect(() => {
@@ -44,18 +44,7 @@ const NewsDetail: FC = () => {
             console.log(`Locale changed from ${currentLocale} to ${locale}`);
             setCurrentLocale(locale);
         }
-        
-        const loadNews = async () => {
-            console.log(`Loading news data with locale: ${locale}`);
-            const data = await loadNewsData(locale || 'en'); // Fetch data based on the current locale
-            const item = data.find((item) => item.slug === slug);
-            setNewsItem(item || null);
-        };
-
-        if (slug) {
-            loadNews();
-        }
-    }, [locale, slug, currentLocale]); // Added currentLocale to dependencies
+    }, [locale, currentLocale]);
 
     if (!newsItem) {
         return (
@@ -163,32 +152,31 @@ const NewsDetail: FC = () => {
     );
 };
 
-export const getServerSideProps: GetServerSideProps = async ({ locale, params }) => {
+export const getServerSideProps: GetServerSideProps = async ({ params, locale }) => {
     try {
-        const response = await fetch('https://raw.githubusercontent.com/RamezHany/IGCCe-tr/main/news.json');
-        if (!response.ok) {
-            throw new Error('Failed to fetch news data');
-        }
-        
+        // Fetch data dynamically
+        const response = await fetch('https://raw.githubusercontent.com/RamezHany/IGCCe-tr/refs/heads/main/news.json');
         const data = await response.json();
+
+        // Find the specific news item
         const newsItem = data.news.find((item: any) => item.slug === params?.slug);
 
         if (!newsItem) {
             return {
-                notFound: true,
+                notFound: true
             };
         }
 
         return {
             props: {
-                news: newsItem,
+                newsItem,
                 ...(await serverSideTranslations(locale || 'ar', ['common'])),
             },
         };
     } catch (error) {
         console.error('Error fetching news:', error);
         return {
-            notFound: true,
+            notFound: true
         };
     }
 };
