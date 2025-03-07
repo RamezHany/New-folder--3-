@@ -163,6 +163,7 @@ const NewsDetail: FC = () => {
     );
 };
 
+
 export const getStaticPaths: GetStaticPaths = async () => {
     // Fetch data from a single file, just like in home_news.data.tsx
     const response = await fetch('https://raw.githubusercontent.com/RamezHany/IGCCe-tr/refs/heads/main/news.json');
@@ -196,9 +197,9 @@ export const getStaticProps: GetStaticProps = async ({ locale }) => {
         props: {
             ...(await serverSideTranslations(locale || 'ar', ['common'])),
         },
-        
     };
 };
+
 
 
 export default NewsDetail;
